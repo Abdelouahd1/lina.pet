@@ -1,0 +1,66 @@
+name: Build LinaPet
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-exe:
+    name: 🪟 Build Windows EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE
+        run: |
+          pyinstaller --onefile --noconsole main.py
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: LinaPet-EXE
+          path: dist/main.exe
+
+  build-apk:
+    name: 🤖 Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install buildozer cython
+          sudo apt update
+          sudo apt install -y build-essential ccache git libncurses5:i386 libstdc++6:i386 \
+            zlib1g:i386 libncurses5 libstdc++6 lib32z1 openjdk-11-jdk unzip zip libffi-dev \
+            libssl-dev libsqlite3-dev libpng-dev libjpeg-dev libfreetype6-dev libpcap-dev
+
+      - name: Build APK
+        run: |
+          buildozer init
+          sed -i 's/requirements = python3/requirements = python3,kivy/' buildozer.spec
+          buildozer android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: LinaPet-APK
+          path: bin/*.apk
